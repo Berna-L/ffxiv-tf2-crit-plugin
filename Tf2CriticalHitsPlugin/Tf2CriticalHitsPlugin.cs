@@ -96,10 +96,12 @@ namespace Tf2CriticalHitsPlugin
                 };
 
                 TriggerChatAlertsForEarlierVersions(config);
-                
-                
-                // For testing only
-                Service.PluginInterface.ConfigFile.MoveTo(Service.PluginInterface.ConfigFile.FullName + $".{unixTimeSeconds}.old", true);
+
+                if (Service.PluginInterface.IsTesting || Service.PluginInterface.IsDev)
+                {
+                    Service.PluginInterface.ConfigFile.MoveTo(
+                        Service.PluginInterface.ConfigFile.FullName + $".{unixTimeSeconds}.old", true);    
+                }
 
                 return config;
             }

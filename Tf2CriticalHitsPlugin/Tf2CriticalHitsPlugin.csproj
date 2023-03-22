@@ -85,10 +85,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="GameSFX" />
-    </ItemGroup>
-
-    <ItemGroup>
         <None Update="Countdown\Sounds\record-scratch-freesounds-luffy-3536.wav">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
