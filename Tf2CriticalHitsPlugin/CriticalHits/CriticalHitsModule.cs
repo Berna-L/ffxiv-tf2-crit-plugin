@@ -1,29 +1,98 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Gui.FlyText;
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Tf2CriticalHitsPlugin.Configuration;
 using Tf2CriticalHitsPlugin.CriticalHits.Configuration;
 using Tf2CriticalHitsPlugin.SeFunctions;
 using static Dalamud.Logging.PluginLog;
+using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 
 namespace Tf2CriticalHitsPlugin.CriticalHits;
 
-public class CriticalHitsModule: IDisposable
+public unsafe class CriticalHitsModule: IDisposable
 {
     private readonly CriticalHitsConfigOne config;
     internal static PlaySound? GameSoundPlayer;
+    private int petHeal;
+    private int otherPlayerHeal;
+
+    private delegate void AddToScreenLogWithScreenLogKindDelegate(
+        Character* target,
+        Character* source,
+        FlyTextKind logKind,
+        byte option,
+        byte actionKind,
+        int actionId,
+        int val1,
+        int val2,
+        byte damageType);
+    private readonly Hook<AddToScreenLogWithScreenLogKindDelegate>? addToScreenLogWithScreenLogKindHook;
+    
 
     public CriticalHitsModule(CriticalHitsConfigOne config)
     {
         this.config = config;
         GameSoundPlayer = new PlaySound(Service.SigScanner);
+
         Service.FlyTextGui.FlyTextCreated += this.FlyTextCreate;
 
+        try {
+            var addToScreenLogWithScreenLogKindAddress = Service.SigScanner.ScanText("E8 ?? ?? ?? ?? BF ?? ?? ?? ?? EB 39");
+            this.addToScreenLogWithScreenLogKindHook = Hook<AddToScreenLogWithScreenLogKindDelegate>.FromAddress(addToScreenLogWithScreenLogKindAddress, this.AddToScreenLogWithScreenLogKindDetour);
+            this.addToScreenLogWithScreenLogKindHook.Enable();
+
+        }
+        catch (Exception)
+        {
+            // ignored
+        }
+
     }
-        public void FlyTextCreate(
+    
+
+    private void AddToScreenLogWithScreenLogKindDetour(
+        Character* target,
+        Character* source,
+        FlyTextKind flyTextKind,
+        byte option, // 0 = DoT / 1 = % increase / 2 = blocked / 3 = parried / 4 = resisted / 5 = default
+        byte actionKind,
+        int actionId,
+        int val1,
+        int val2,
+        byte damageType)
+    {
+        if (FlyTextType.ActionCriticalHeal.Contains(flyTextKind))
+        {
+            if (IsPlayerPet(source))
+            {
+                petHeal = val1;
+            } else if (!IsPlayer(source))
+            {
+                otherPlayerHeal = val1;
+            }
+            
+        }
+        
+        this.addToScreenLogWithScreenLogKindHook!.Original(target, source, flyTextKind, option, actionKind, actionId, val1, val2, damageType);
+    }
+    
+    private bool IsPlayer(Character* source)
+    {
+        return source->GameObject.ObjectID == Service.ClientState.LocalPlayer?.ObjectId;
+    }
+
+    private static bool IsPlayerPet(Character* source)
+    {
+        LogDebug("cheguei aqui");
+        return source->GameObject.SubKind == (int)BattleNpcSubKind.Pet && source->CompanionOwnerID == Service.ClientState.LocalPlayer?.ObjectId;
+    }
+
+    public void FlyTextCreate(
             ref FlyTextKind kind,
             ref int val1,
             ref int val2,
@@ -47,7 +116,7 @@ public class CriticalHitsModule: IDisposable
             {
                 if (ShouldTriggerInCurrentMode(config) &&
                     (IsAutoAttack(config, kind) ||
-                     IsEnabledAction(config, kind, text1, currentClassJobId)))
+                     IsEnabledAction(config, kind, text1, val1, currentClassJobId)))
                 {
                     LogDebug($"{config.GetId()} registered!");
                     if (config.ShowText)
@@ -67,6 +136,7 @@ public class CriticalHitsModule: IDisposable
                             GameSoundPlayer?.Play(config.GameSound.Value);
                         }
                     }
+                    break;
                 }
             }
         }
@@ -81,19 +151,30 @@ public class CriticalHitsModule: IDisposable
             return config.GetModuleDefaults().FlyTextType.AutoAttack.Contains(kind);
         }
 
-        private static bool IsEnabledAction(
-            CriticalHitsConfigOne.ConfigModule config, FlyTextKind kind, SeString text, [DisallowNull] byte? currentClassJobId)
+        private bool IsEnabledAction(
+            CriticalHitsConfigOne.ConfigModule config, FlyTextKind kind, SeString text, int val, [DisallowNull] byte? currentClassJobId)
         {
             // If it's not a FlyText for an action, return false
             if (!config.GetModuleDefaults().FlyTextType.Action.Contains(kind)) return false;
             // If we're checking the Own Critical Heals section, check if it's an action of the current job
             if (config.ModuleType == ModuleType.OwnCriticalHeal)
             {
-                return Constants.ActionsPerJob[currentClassJobId.Value].Contains(text.TextValue);
+                if (petHeal == val)
+                {
+                    petHeal = -1;
+                    return true;
+                }
+                return Constants.ActionsPerJob[currentClassJobId.Value].Contains(text.TextValue) && otherPlayerHeal != val;
             }
             // If we're checking the Other Critical Heals section, check if it's NOT an action of the current job
             if (config.ModuleType == ModuleType.OtherCriticalHeal)
             {
+                LogDebug($"a = {otherPlayerHeal} | val = {val}");
+                if (otherPlayerHeal == val)
+                {
+                    otherPlayerHeal = -1;
+                    return true;
+                }
                 return !Constants.ActionsPerJob[currentClassJobId.Value].Contains(text.TextValue);
             }
             // If it's any other configuration section, it's enabled.
@@ -153,6 +234,7 @@ public class CriticalHitsModule: IDisposable
 
         public void Dispose()
         {
+            addToScreenLogWithScreenLogKindHook?.Dispose();
             Service.FlyTextGui.FlyTextCreated -= FlyTextCreate;
         }
 }

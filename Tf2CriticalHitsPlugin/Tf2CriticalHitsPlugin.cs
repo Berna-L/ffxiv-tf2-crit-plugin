@@ -51,8 +51,6 @@ namespace Tf2CriticalHitsPlugin
             criticalHitsModule = new CriticalHitsModule(Configuration.criticalHits);
             countdownModule = new CountdownModule(State.Instance(), Configuration.countdownJams);
 
-
-
             Service.CommandManager.AddHandler(CommandName, new CommandInfo(OnConfigCommand)
             {
                 HelpMessage = "Opens the Hit it, Joe! configuration window",
