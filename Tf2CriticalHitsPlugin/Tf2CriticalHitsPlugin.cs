@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Dalamud.Game.Command;
 using Dalamud.Plugin;
 using Dalamud.Interface.Windowing;
@@ -74,8 +76,6 @@ namespace Tf2CriticalHitsPlugin
             }
 
             var configText = File.ReadAllText(configFile);
-            var unixTimeSeconds = DateTimeOffset.Now.ToUnixTimeSeconds();
-
             try
             {
                 var versionCheck = JsonSerializer.Deserialize<BaseConfiguration>(configText);
@@ -95,22 +95,71 @@ namespace Tf2CriticalHitsPlugin
 
                 TriggerChatAlertsForEarlierVersions(config);
 
-                if (Service.PluginInterface.IsTesting || Service.PluginInterface.IsDev)
+                Directory.CreateDirectory(Path.GetDirectoryName(GetBackupFileName()));
+                
+                CleanUpOldFiles();
+                
+                if (Service.PluginInterface.IsDev)
                 {
-                    Service.PluginInterface.ConfigFile.MoveTo(
-                        Service.PluginInterface.ConfigFile.FullName + $".{unixTimeSeconds}.old", true);    
+                    Service.PluginInterface.ConfigFile.MoveTo(GetBackupFileName(), true);    
                 }
+
 
                 return config;
             }
             catch (Exception e)
             {
                 if (e.StackTrace is not null) LogError(e.StackTrace);
-                // var unixTimeSeconds = DateTimeOffset.Now.ToUnixTimeSeconds();
-                // Service.PluginInterface.ConfigFile.MoveTo(Service.PluginInterface.ConfigFile.FullName + $".{unixTimeSeconds}.old", true);
+                Service.PluginInterface.ConfigFile.MoveTo(GetBackupFileName(), true);
                 Chat.PrintError(
-                    $"There was an error while reading your configuration file and it was reset. The old file is available in your pluginConfigs folder, as Tf2CriticalHitsPlugin.json.{unixTimeSeconds}.old.");
+                    $"There was an error while reading your configuration file and it was reset. The old file is available here: {GetBackupFileName()}");
                 return new ConfigTwo();
+            }
+
+        }
+
+        private static string GetBackupFileName() => $"{Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "backups", Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))}.{DateTimeOffset.Now.ToUnixTimeSeconds()}.json";
+
+        private static string BackupFolder => Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "backups");
+
+        private static void CleanUpOldFiles()
+        {
+            var timeSpan = TimeSpan.FromDays(5);
+            var regexOldFormat = new Regex(Regex.Escape(Service.PluginInterface.ConfigFile.FullName) + @"\.(\d+)\.old");
+            var regexNewFormat =
+                new Regex(Regex.Escape(Path.Combine(Service.PluginInterface.ConfigDirectory.FullName,
+                                                    "backups",
+                                                    Service.PluginInterface.ConfigFile.Name)) + @"\.(\d+)");
+
+            bool FileOldFormatTooOld(FileInfo f)
+            {
+                var match = regexOldFormat.Match(f.FullName);
+                if (!match.Success) return false;
+                var date = DateTime.UnixEpoch.AddSeconds(long.Parse(match.Groups[1].Value));
+                return DateTime.Now - date > timeSpan;
+            }
+
+            bool FileNewFormatTooOld(FileInfo f)
+            {
+                var match = regexNewFormat.Match(f.FullName);
+                if (!match.Success) return false;
+                var value = match.Groups[1].Value;
+                var date = DateTime.UnixEpoch.AddSeconds(long.Parse(value));
+                return DateTime.Now - date > timeSpan;
+            }
+
+            foreach (var file in Directory.GetParent(Service.PluginInterface.ConfigFile.FullName)?
+                                          .GetFiles()
+                                          .Where(FileOldFormatTooOld) ?? ArraySegment<FileInfo>.Empty)
+            {
+                File.Delete(file.FullName);
+            }
+
+            foreach (var file in Directory.GetFiles(BackupFolder)
+                                          .Select(f => new FileInfo(f))
+                                          .Where(FileNewFormatTooOld))
+            {
+                File.Delete(file.FullName);
             }
         }
 
