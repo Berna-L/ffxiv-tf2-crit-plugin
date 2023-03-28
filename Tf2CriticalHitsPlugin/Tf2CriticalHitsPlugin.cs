@@ -126,8 +126,7 @@ namespace Tf2CriticalHitsPlugin
         {
             var timeSpan = TimeSpan.FromDays(5);
             var regexOldFormat = new Regex(Regex.Escape(Service.PluginInterface.ConfigFile.FullName) + @"\.(\d+)\.old");
-            var regexNewFormat =
-                new Regex(Path.Combine(Regex.Escape(BackupFolder), Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name)) + @"\.(\d+).json");
+            var regexNewFormat = new Regex(Regex.Escape(Path.Combine(BackupFolder, Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))) + @"\.(\d+)\.json");
 
             bool FileOldFormatTooOld(FileInfo f)
             {
