@@ -254,4 +254,12 @@ public class CriticalHitsConfigOne
             criticalHits = this
         };
     }
+
+    public void Rescue(CriticalHitsConfigOne fileCriticalHits)
+    {
+        foreach (var (key, _) in fileCriticalHits.JobConfigurations)
+        {
+            JobConfigurations[key] = fileCriticalHits.JobConfigurations[key];
+        }
+    }
 }

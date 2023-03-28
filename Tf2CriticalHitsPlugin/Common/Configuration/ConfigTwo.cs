@@ -25,4 +25,10 @@ public class ConfigTwo: BaseConfiguration
         File.WriteAllText(Service.PluginInterface.ConfigFile.FullName,
                           JsonConvert.SerializeObject(this, Formatting.Indented));
     }
+
+    public void Rescue(ConfigTwo file)
+    {
+        criticalHits.Rescue(file.criticalHits);
+        countdownJams.Rescue(file.countdownJams);
+    }
 }

@@ -14,4 +14,13 @@ public class CountdownConfigZero
     {
         Version = 0;
     }
+
+    public void Rescue(CountdownConfigZero fileCountdownJams)
+    {
+        modules.Clear();
+        foreach (var module in fileCountdownJams.modules)
+        {
+            modules.Add(module);
+        }
+    }
 }

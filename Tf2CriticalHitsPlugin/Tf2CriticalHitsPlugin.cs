@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Dalamud.Game.Command;
 using Dalamud.Plugin;
 using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 using KamiLib;
 using KamiLib.ChatCommands;
 using Newtonsoft.Json;
@@ -18,6 +19,7 @@ using Tf2CriticalHitsPlugin.CriticalHits.Windows;
 using Tf2CriticalHitsPlugin.Windows;
 using static Dalamud.Logging.PluginLog;
 using JsonSerializer = System.Text.Json.JsonSerializer;
+using PluginVersion = Tf2CriticalHitsPlugin.Configuration.PluginVersion;
 
 namespace Tf2CriticalHitsPlugin
 {
@@ -26,15 +28,17 @@ namespace Tf2CriticalHitsPlugin
         public string Name => PluginName;
         public const string PluginName = "Hit it, Joe!";
         private const string CommandName = "/joeconfig";
+        private const string RescueCommandName = "/rescuemejoe";
         private const string LegacyCommandName = "/critconfig";
 
-        public ConfigTwo Configuration { get; init; }
+        public ConfigTwo Configuration { get; private set; }
         
         
         public readonly WindowSystem WindowSystem = new("TF2CriticalHitsPlugin");
         
         private readonly CriticalHitsModule criticalHitsModule;
         private readonly CountdownModule countdownModule;
+        private static string BackupsFolderName = "backups";
 
         public Tf2CriticalHitsPlugin(DalamudPluginInterface pluginInterface)
         {
@@ -59,6 +63,11 @@ namespace Tf2CriticalHitsPlugin
             });
             
             Service.CommandManager.AddHandler(LegacyCommandName, new CommandInfo(OnConfigCommand)
+            {
+                ShowInHelp = false
+            });
+
+            Service.CommandManager.AddHandler(RescueCommandName, new CommandInfo(OnRescueCommand)
             {
                 ShowInHelp = false
             });
@@ -93,9 +102,20 @@ namespace Tf2CriticalHitsPlugin
                     _ => new ConfigTwo()
                 };
 
+                var filesLength = Directory.GetFiles(BackupsFolder).Length;
+                LogDebug($"{filesLength} files in the backups folder");
+                if ((config.PluginVersion.Equals(PluginVersion.From(3, 0, 1)) ||
+                     config.PluginVersion.Equals(PluginVersion.From(3, 0, 0)))
+                    && filesLength != 0)
+                {
+                    Chat.PrintError("We detected you may have been impacted by configuration loss in version 3.0.1.0 of this plugin. " +
+                                    "If you want to restore the last configuration saved before updating to 3.0.1.0, use this command in chat: " +
+                                    RescueCommandName);
+                }
+
                 TriggerChatAlertsForEarlierVersions(config);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(BackupFileName));
+                Directory.CreateDirectory(BackupsFolder);
                 
                 CleanUpOldFiles();
                 
@@ -118,15 +138,15 @@ namespace Tf2CriticalHitsPlugin
 
         }
 
-        private static string BackupFileName => $"{Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "backups", Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))}.{DateTimeOffset.Now.ToUnixTimeSeconds()}.json";
+        private static string BackupFileName => $"{Path.Combine(BackupsFolder, Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))}.{DateTimeOffset.Now.ToUnixTimeSeconds()}.json";
 
-        private static string BackupFolder => Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "backups");
+        private static string BackupsFolder => Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, BackupsFolderName);
 
         private static void CleanUpOldFiles()
         {
             var timeSpan = TimeSpan.FromDays(5);
             var regexOldFormat = new Regex(Regex.Escape(Service.PluginInterface.ConfigFile.FullName) + @"\.(\d+)\.old");
-            var regexNewFormat = new Regex(Regex.Escape(Path.Combine(BackupFolder, Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))) + @"\.(\d+)\.json");
+            var regexNewFormat = new Regex(Regex.Escape(Path.Combine(BackupsFolder, Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))) + @"\.(\d+)\.json");
 
             bool FileOldFormatTooOld(FileInfo f)
             {
@@ -152,7 +172,7 @@ namespace Tf2CriticalHitsPlugin
                 File.Delete(file.FullName);
             }
 
-            foreach (var file in Directory.GetFiles(BackupFolder)
+            foreach (var file in Directory.GetFiles(BackupsFolder)
                                           .Select(f => new FileInfo(f))
                                           .Where(FileNewFormatTooOld))
             {
@@ -179,13 +199,14 @@ namespace Tf2CriticalHitsPlugin
                 Chat.Print("Update 3.0.0.0", "TF2-ish Critical Hits has been renamed to Hit it Joe, and comes with a new module: Countdown Jams! Configure a sound to be played when a countdown begins and if it's cancelled.");
             }
         }
-        
+
         public void Dispose()
         {
             KamiCommon.Dispose();
             countdownModule.Dispose();
             criticalHitsModule.Dispose();
             this.WindowSystem.RemoveAllWindows();
+            Service.CommandManager.RemoveHandler(RescueCommandName);
             Service.CommandManager.RemoveHandler(LegacyCommandName);
             Service.CommandManager.RemoveHandler(CommandName);
         }
@@ -200,6 +221,28 @@ namespace Tf2CriticalHitsPlugin
             {
                 window.IsOpen = true;
             }
+        }
+
+        private void OnRescueCommand(string command, string arguments)
+        {
+            var firstBackup = Directory.GetFiles(BackupsFolder).Order()
+                                          .FirstOrDefault();
+            if (firstBackup is null)
+            {
+                Chat.PrintError("No backups files found. If you are sure you lost your configuration in 3.0.1.0, please contact us in the Dalamud Discord, #plugin-dev-forum -> Hit it, Joe");
+                return;
+            }
+
+            var rescuedConfig = JsonConvert.DeserializeObject<ConfigTwo>(File.ReadAllText(firstBackup));
+            if (rescuedConfig is null)
+            {
+                Chat.PrintError("Error while rescuing your previous configuration. Please contact us in the Dalamud Discord, #plugin-dev-forum -> Hit it, Joe");
+                return;
+            }
+
+            Configuration.Rescue(rescuedConfig);
+            KamiCommon.SaveConfiguration();
+            Chat.Print("Rescue", "The configuration was rescued. Sorry for the inconvenience! If you notice any issues, please contact us in the Dalamud Discord, #plugin-dev-forum -> Hit it, Joe");
         }
 
         private void DrawUserInterface()

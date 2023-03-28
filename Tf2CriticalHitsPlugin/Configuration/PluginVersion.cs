@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Dalamud.Logging;
 
 namespace Tf2CriticalHitsPlugin.Configuration;
 
-public class PluginVersion: IComparable<PluginVersion>
+public class PluginVersion : IComparable<PluginVersion>
 {
     public static readonly PluginVersion Current;
-    
+
     public int Major { get; init; }
     public int Minor { get; init; }
     public int Patch { get; init; }
@@ -43,5 +44,23 @@ public class PluginVersion: IComparable<PluginVersion>
     public bool Before(int major, int minor, int patch)
     {
         return this.CompareTo(From(major, minor, patch)) < 0;
+    }
+
+    protected bool Equals(PluginVersion other)
+    {
+        return Major == other.Major && Minor == other.Minor && Patch == other.Patch;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != this.GetType()) return false;
+        return Equals((PluginVersion)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Major, Minor, Patch);
     }
 }
