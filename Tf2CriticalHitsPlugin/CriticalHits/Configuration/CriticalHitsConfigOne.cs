@@ -39,9 +39,7 @@ public class CriticalHitsConfigOne
         public ConfigModule DirectCriticalDamage { get; init; } = new();
         public ConfigModule CriticalDamage { get; init; } = new();
         public ConfigModule OwnCriticalHeal { get; init; } = new();
-
-        public IEnumerable<ConfigModule> GetModules => new[] { DirectCriticalDamage, CriticalDamage, DirectDamage, OwnCriticalHeal, OtherCriticalHeal };
-
+        
         [Obsolete("Used only to import old JSONs")]
         public ConfigModule CriticalHeal
         {
@@ -163,6 +161,10 @@ public class CriticalHitsConfigOne
         }
     }
     
+    public static IEnumerable<ConfigModule> GetModules(JobConfig jobConfig)
+        => new[] { jobConfig.DirectCriticalDamage, jobConfig.CriticalDamage, jobConfig.DirectDamage, jobConfig.OwnCriticalHeal, jobConfig.OtherCriticalHeal };
+
+    
     public void CreateZip(string path)
     {
         var actualPath = Path.HasExtension(path) ? path : $"{path}.zip";
@@ -173,7 +175,7 @@ public class CriticalHitsConfigOne
         }
         var stagingDirectory = Directory.CreateDirectory(stagingPath);
         var files = JobConfigurations.Select(c => c.Value)
-                                     .SelectMany(c => c.GetModules)
+                                     .SelectMany(GetModules)
                                      .Where(c => c.UseCustomFile)
                                      .Select(c => c.FilePath.ToString())
                                      .Distinct()
@@ -181,7 +183,7 @@ public class CriticalHitsConfigOne
                                      .ToDictionary(s => s, s => CopyAndRenameFile(s, stagingDirectory));
         var zippedConfig = this.Clone();
         foreach (var configModule in zippedConfig.JobConfigurations.Select(c => c.Value)
-                                      .SelectMany(c => c.GetModules)
+                                      .SelectMany(GetModules)
                                       .Where(c => File.Exists(c.FilePath.Value)))
         {
             configModule.FilePath = new Setting<string>(files[configModule.FilePath.Value]);
@@ -218,7 +220,7 @@ public class CriticalHitsConfigOne
             entry.ExtractToFile(Path.Join(soundsPath, entry.Name), true);
         }
         foreach (var module in newCriticalHitsConfig.JobConfigurations.Select(c => c.Value)
-                                        .SelectMany(c => c.GetModules))
+                                        .SelectMany(GetModules))
         {
             module.FilePath = new Setting<string>(Path.Join(soundsPath, module.FilePath.Value));
         }
