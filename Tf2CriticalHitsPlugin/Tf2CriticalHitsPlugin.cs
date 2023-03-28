@@ -95,13 +95,13 @@ namespace Tf2CriticalHitsPlugin
 
                 TriggerChatAlertsForEarlierVersions(config);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(GetBackupFileName()));
+                Directory.CreateDirectory(Path.GetDirectoryName(BackupFileName));
                 
                 CleanUpOldFiles();
                 
                 if (Service.PluginInterface.IsDev)
                 {
-                    Service.PluginInterface.ConfigFile.MoveTo(GetBackupFileName(), true);    
+                    Service.PluginInterface.ConfigFile.MoveTo(BackupFileName, true);    
                 }
 
 
@@ -110,15 +110,15 @@ namespace Tf2CriticalHitsPlugin
             catch (Exception e)
             {
                 if (e.StackTrace is not null) LogError(e.StackTrace);
-                Service.PluginInterface.ConfigFile.MoveTo(GetBackupFileName(), true);
+                Service.PluginInterface.ConfigFile.MoveTo(BackupFileName, true);
                 Chat.PrintError(
-                    $"There was an error while reading your configuration file and it was reset. The old file is available here: {GetBackupFileName()}");
+                    $"There was an error while reading your configuration file and it was reset. The old file is available here: {BackupFileName}");
                 return new ConfigTwo();
             }
 
         }
 
-        private static string GetBackupFileName() => $"{Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "backups", Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))}.{DateTimeOffset.Now.ToUnixTimeSeconds()}.json";
+        private static string BackupFileName => $"{Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "backups", Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))}.{DateTimeOffset.Now.ToUnixTimeSeconds()}.json";
 
         private static string BackupFolder => Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "backups");
 
@@ -127,9 +127,7 @@ namespace Tf2CriticalHitsPlugin
             var timeSpan = TimeSpan.FromDays(5);
             var regexOldFormat = new Regex(Regex.Escape(Service.PluginInterface.ConfigFile.FullName) + @"\.(\d+)\.old");
             var regexNewFormat =
-                new Regex(Regex.Escape(Path.Combine(Service.PluginInterface.ConfigDirectory.FullName,
-                                                    "backups",
-                                                    Service.PluginInterface.ConfigFile.Name)) + @"\.(\d+)");
+                new Regex(Path.Combine(Regex.Escape(BackupFolder), Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name)) + @"\.(\d+).json");
 
             bool FileOldFormatTooOld(FileInfo f)
             {
