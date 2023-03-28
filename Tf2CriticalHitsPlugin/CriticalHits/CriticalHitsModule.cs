@@ -88,7 +88,6 @@ public unsafe class CriticalHitsModule: IDisposable
 
     private static bool IsPlayerPet(Character* source)
     {
-        LogDebug("cheguei aqui");
         return source->GameObject.SubKind == (int)BattleNpcSubKind.Pet && source->CompanionOwnerID == Service.ClientState.LocalPlayer?.ObjectId;
     }
 
@@ -118,7 +117,6 @@ public unsafe class CriticalHitsModule: IDisposable
                     (IsAutoAttack(config, kind) ||
                      IsEnabledAction(config, kind, text1, val1, currentClassJobId)))
                 {
-                    LogDebug($"{config.GetId()} registered!");
                     if (config.ShowText)
                     {
                         text2 = GenerateText(config);
@@ -169,7 +167,6 @@ public unsafe class CriticalHitsModule: IDisposable
             // If we're checking the Other Critical Heals section, check if it's NOT an action of the current job
             if (config.ModuleType == ModuleType.OtherCriticalHeal)
             {
-                LogDebug($"a = {otherPlayerHeal} | val = {val}");
                 if (otherPlayerHeal == val)
                 {
                     otherPlayerHeal = -1;
@@ -195,7 +192,6 @@ public unsafe class CriticalHitsModule: IDisposable
         public static void GenerateTestFlyText(CriticalHitsConfigOne.ConfigModule config)
         {
             var kind = config.GetModuleDefaults().FlyTextType.Action.FirstOrDefault();
-            LogDebug($"Kind: {kind}, Config ID: {config.GetId()}");
             var text = GetTestText(config);
             Service.FlyTextGui.AddFlyText(kind, 1, 3333, 0, new SeStringBuilder().AddText(text).Build(),
                                           new SeStringBuilder().AddText($"TF2TEST##{config.ClassJobId}").Build(),
@@ -212,8 +208,6 @@ public unsafe class CriticalHitsModule: IDisposable
 
         private static SeString GenerateText(CriticalHitsConfigOne.ConfigModule config)
         {
-            LogDebug(
-                $"Generating text with color {config.TextColor} and glow {config.TextGlowColor}");
             var stringBuilder = new SeStringBuilder()
                                 .AddUiForeground(config.TextColor.Value)
                                 .AddUiGlow(config.TextGlowColor.Value);
