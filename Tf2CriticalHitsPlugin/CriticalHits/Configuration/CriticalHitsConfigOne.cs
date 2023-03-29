@@ -168,31 +168,37 @@ public class CriticalHitsConfigOne
     public void CreateZip(string path)
     {
         var actualPath = Path.HasExtension(path) ? path : $"{path}.zip";
-        var stagingPath = Path.Join(Path.GetTempPath(), "critplugin");
-        foreach (var file in Directory.GetFiles(stagingPath))
-        {
-            File.Delete(file);
-        }
-        var stagingDirectory = Directory.CreateDirectory(stagingPath);
-        var files = JobConfigurations.Select(c => c.Value)
-                                     .SelectMany(GetModules)
-                                     .Where(c => c.UseCustomFile)
-                                     .Select(c => c.FilePath.ToString())
-                                     .Distinct()
-                                     .Where(File.Exists)
-                                     .ToDictionary(s => s, s => CopyAndRenameFile(s, stagingDirectory));
-        var zippedConfig = this.Clone();
-        foreach (var configModule in zippedConfig.JobConfigurations.Select(c => c.Value)
-                                      .SelectMany(GetModules)
-                                      .Where(c => File.Exists(c.FilePath.Value)))
-        {
-            configModule.FilePath = new Setting<string>(files[configModule.FilePath.Value]);
-        }
-        File.WriteAllText(Path.Join(stagingPath, "config.json"), JsonConvert.SerializeObject(zippedConfig, Formatting.Indented));
         try
         {
-            ZipFile.CreateFromDirectory(stagingPath, actualPath);
-            Chat.Print("Sharing", $"The ZIP was created successfully at {actualPath}. Use it to share with your friends!");
+            var stagingPath = Path.Combine(Path.GetTempPath(), "critplugin");
+            if (Directory.Exists(stagingPath))
+            {
+                foreach (var file in Directory.GetFiles(stagingPath))
+                {
+                    File.Delete(file);
+                }
+            }
+            else
+            {
+                Directory.CreateDirectory(stagingPath);
+            }
+            var files = JobConfigurations.Select(c => c.Value)
+                                         .SelectMany(GetModules)
+                                         .Where(c => c.UseCustomFile)
+                                         .Select(c => c.FilePath.ToString())
+                                         .Distinct()
+                                         .Where(File.Exists)
+                                         .ToDictionary(s => s, s => CopyAndRenameFile(s, stagingPath));
+            var zippedConfig = this.Clone();
+            foreach (var configModule in zippedConfig.JobConfigurations.Select(c => c.Value)
+                                          .SelectMany(GetModules)
+                                          .Where(c => File.Exists(c.FilePath.Value)))
+            {
+                configModule.FilePath = new Setting<string>(files[configModule.FilePath.Value]);
+            }
+            File.WriteAllText(Path.Combine(stagingPath, "config.json"), JsonConvert.SerializeObject(zippedConfig, Formatting.Indented));
+                ZipFile.CreateFromDirectory(stagingPath, actualPath);
+                Chat.Print("Sharing", $"The ZIP was created successfully at {actualPath}. Use it to share with your friends!");
         }
         catch (IOException exception)
         {
@@ -218,12 +224,12 @@ public class CriticalHitsConfigOne
         var zipArchive = ZipFile.OpenRead(zipPath);
         foreach (var entry in zipArchive.Entries.Where(e => e.Name is not "config.json"))
         {
-            entry.ExtractToFile(Path.Join(soundsPath, entry.Name), true);
+            entry.ExtractToFile(Path.Combine(soundsPath, entry.Name), true);
         }
         foreach (var module in newCriticalHitsConfig.JobConfigurations.Select(c => c.Value)
                                         .SelectMany(GetModules))
         {
-            module.FilePath = new Setting<string>(Path.Join(soundsPath, module.FilePath.Value));
+            module.FilePath = new Setting<string>(Path.Combine(soundsPath, module.FilePath.Value));
         }
         foreach (var jobConfig in JobConfigurations.Select(c => c.Value))
         {
@@ -240,10 +246,10 @@ public class CriticalHitsConfigOne
         return newInstance;
     }
 
-    private static string CopyAndRenameFile(string originalFile, DirectoryInfo destDirectory)
+    private static string CopyAndRenameFile(string originalFile, string destDirectory)
     {
         var fileName = Guid.NewGuid() + Path.GetExtension(originalFile);
-        File.Copy(originalFile, Path.Join(destDirectory.ToString(), fileName));
+        File.Copy(originalFile, Path.Combine(destDirectory, fileName));
         return fileName;
     }
 
