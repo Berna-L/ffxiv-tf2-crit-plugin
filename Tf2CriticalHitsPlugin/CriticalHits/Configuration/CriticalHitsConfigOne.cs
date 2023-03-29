@@ -192,6 +192,7 @@ public class CriticalHitsConfigOne
         try
         {
             ZipFile.CreateFromDirectory(stagingPath, actualPath);
+            Chat.Print("Sharing", $"The ZIP was created successfully at {actualPath}. Use it to share with your friends!");
         }
         catch (IOException exception)
         {
