@@ -46,6 +46,11 @@ public class PluginVersion : IComparable<PluginVersion>
         return this.CompareTo(From(major, minor, patch)) < 0;
     }
 
+    public bool Before(PluginVersion other)
+    {
+        return this.Before(other.Major, other.Minor, other.Patch);
+    }
+
     protected bool Equals(PluginVersion other)
     {
         return Major == other.Major && Minor == other.Minor && Patch == other.Patch;

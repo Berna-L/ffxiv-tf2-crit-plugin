@@ -39,6 +39,7 @@ namespace Tf2CriticalHitsPlugin
         private readonly CriticalHitsModule criticalHitsModule;
         private readonly CountdownModule countdownModule;
         private static string BackupsFolderName = "backups";
+        private static readonly Regex BackupFileNameFormat = new Regex(Regex.Escape(Path.Combine(BackupsFolder, Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))) + @"\.(\d+)\.json");
 
         public Tf2CriticalHitsPlugin(DalamudPluginInterface pluginInterface)
         {
@@ -146,36 +147,39 @@ namespace Tf2CriticalHitsPlugin
         {
             var timeSpan = TimeSpan.FromDays(5);
             var regexOldFormat = new Regex(Regex.Escape(Service.PluginInterface.ConfigFile.FullName) + @"\.(\d+)\.old");
-            var regexNewFormat = new Regex(Regex.Escape(Path.Combine(BackupsFolder, Path.GetFileNameWithoutExtension(Service.PluginInterface.ConfigFile.Name))) + @"\.(\d+)\.json");
 
-            bool FileOldFormatTooOld(FileInfo f)
-            {
-                var match = regexOldFormat.Match(f.FullName);
-                if (!match.Success) return false;
-                var date = DateTime.UnixEpoch.AddSeconds(long.Parse(match.Groups[1].Value));
-                return DateTime.Now - date > timeSpan;
-            }
 
-            bool FileNewFormatTooOld(FileInfo f)
+            bool FileTooOld(FileInfo f, Regex regex)
             {
-                var match = regexNewFormat.Match(f.FullName);
+                var match = regex.Match(f.FullName);
                 if (!match.Success) return false;
                 var value = match.Groups[1].Value;
                 var date = DateTime.UnixEpoch.AddSeconds(long.Parse(value));
                 return DateTime.Now - date > timeSpan;
             }
-
+            
+            
+            // Deletes all files backed up the old way that are more than five days old
             foreach (var file in Directory.GetParent(Service.PluginInterface.ConfigFile.FullName)?
                                           .GetFiles()
-                                          .Where(FileOldFormatTooOld) ?? ArraySegment<FileInfo>.Empty)
+                                          .Where( f => FileTooOld(f, regexOldFormat))
+                                 ?? ArraySegment<FileInfo>.Empty)
             {
                 File.Delete(file.FullName);
             }
 
+            var previousFileVersion = PluginVersion.From(0, 0, 0);
+            
+            // Deletes all files backed up the new way that are more than five days old 
+            // and is the first backup for a given plugin version
             foreach (var file in Directory.GetFiles(BackupsFolder)
                                           .Select(f => new FileInfo(f))
-                                          .Where(FileNewFormatTooOld))
+                                          .Where(f => BackupFileNameFormat.IsMatch(f.FullName))
+                                          .Where(f => FileTooOld(f, BackupFileNameFormat)))
             {
+                var baseConfig = JsonConvert.DeserializeObject<BaseConfiguration>(File.ReadAllText(file.FullName));
+                if (baseConfig is null) continue;
+                if (previousFileVersion.Before(baseConfig.PluginVersion)) continue;
                 File.Delete(file.FullName);
             }
         }
@@ -225,8 +229,10 @@ namespace Tf2CriticalHitsPlugin
 
         private void OnRescueCommand(string command, string arguments)
         {
-            var firstBackup = Directory.GetFiles(BackupsFolder).Order()
-                                          .FirstOrDefault();
+            var firstBackup = Directory.GetFiles(BackupsFolder)
+                                       .Where(path => BackupFileNameFormat.IsMatch(path))
+                                       .Order()
+                                       .FirstOrDefault();
             if (firstBackup is null)
             {
                 Chat.PrintError("No backups files found. If you are sure you lost your configuration in 3.0.1.0, please contact us in the Dalamud Discord, #plugin-dev-forum -> Hit it, Joe");
