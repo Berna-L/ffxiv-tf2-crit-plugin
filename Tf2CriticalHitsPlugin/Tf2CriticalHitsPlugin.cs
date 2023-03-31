@@ -103,6 +103,8 @@ namespace Tf2CriticalHitsPlugin
                     _ => new ConfigTwo()
                 };
 
+                Directory.CreateDirectory(BackupsFolder);
+
                 var filesLength = Directory.GetFiles(BackupsFolder).Length;
                 LogDebug($"{filesLength} files in the backups folder");
                 if ((config.PluginVersion.Equals(PluginVersion.From(3, 0, 1)) ||
@@ -116,7 +118,6 @@ namespace Tf2CriticalHitsPlugin
 
                 TriggerChatAlertsForEarlierVersions(config);
 
-                Directory.CreateDirectory(BackupsFolder);
                 
                 CleanUpOldFiles();
                 
@@ -229,6 +230,7 @@ namespace Tf2CriticalHitsPlugin
 
         private void OnRescueCommand(string command, string arguments)
         {
+            Directory.CreateDirectory(BackupsFolder);
             var firstBackup = Directory.GetFiles(BackupsFolder)
                                        .Where(path => BackupFileNameFormat.IsMatch(path))
                                        .Order()
