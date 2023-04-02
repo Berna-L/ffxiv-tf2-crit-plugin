@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
-using Dalamud.Interface;
-using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Interface.Raii;
 using ImGuiNET;
 using KamiLib.Configuration;
 using KamiLib.Drawing;
@@ -16,11 +15,13 @@ public class CountdownOption : ISelectable, IDrawable
 {
     private readonly Setting<List<uint>> zones = new(new List<uint>());
 
+    private readonly CountdownConfigZero configZero;
     internal readonly CountdownConfigZeroModule Module;
     private readonly FileDialogManager dialogManager;
 
-    public CountdownOption(CountdownConfigZeroModule module, FileDialogManager dialogManager)
+    public CountdownOption(CountdownConfigZero configZero, CountdownConfigZeroModule module, FileDialogManager dialogManager)
     {
+        this.configZero = configZero;
         this.Module = module;
         this.dialogManager = dialogManager;
         this.anywhereOrSelect = new Setting<Option>(Module.AllTerritories ? Option.Anywhere : Option.SelectTerritories);
@@ -30,11 +31,8 @@ public class CountdownOption : ISelectable, IDrawable
 
     public void DrawLabel()
     {
-        ImGui.PushStyleColor(ImGuiCol.Text, Module.Enabled ? Colors.Green : Colors.Red);
+        using var color = ImRaii.PushColor(ImGuiCol.Text, Module.Enabled ? Colors.Green : Colors.Red);
         ImGui.Text(Module.Label.Value);
-        ImGui.PopStyleColor();
-        ImGui.SameLine(ImGui.GetContentRegionAvail().X - Constants.IconButtonSize);
-        ImGuiComponents.IconButton(FontAwesomeIcon.Trash, defaultColor: Colors.Red);
     }
 
     public string ID => Module.Id.Value;
@@ -43,10 +41,13 @@ public class CountdownOption : ISelectable, IDrawable
 
     public void Draw()
     {
-        DrawDetailPane(dialogManager);
+        if (configZero.modules.Contains(Module))
+        {
+            DrawDetailPane();
+        }
     }
 
-    private void DrawDetailPane(FileDialogManager fileDialogManager)
+    private void DrawDetailPane()
     {
         new SimpleDrawList()
             .AddConfigCheckbox("Enabled", Module.Enabled)
@@ -101,6 +102,11 @@ public class CountdownOption : ISelectable, IDrawable
                            zones, ZoneFilterType.FromId(Module.TerritoryFilterType.Value)!))
             .EndConditional()
             .AddIndent(-2)
+            .BeginDisabled(!ImGui.GetIO().KeyShift)
+            .AddButton("Delete configuration", () => configZero.modules.Remove(Module))
+            .EndDisabled()
+            .SameLine()
+            .AddHelpMarker("Hold \"Shift\" to enable this button.")
             .Draw();
 
         Module.AllTerritories.Value = anywhereOrSelect.Value == Option.Anywhere;

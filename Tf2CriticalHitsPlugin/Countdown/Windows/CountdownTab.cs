@@ -16,7 +16,7 @@ public class CountdownTab: SoundConfigurationTab<CountdownConfigZero>
     public override IEnumerable<ISelectable> GetTabSelectables()
     {
         return Configuration.modules
-                            .Select(m => new CountdownOption(m, DialogManager));
+                            .Select(m => new CountdownOption(Configuration, m, DialogManager));
     }
 
     public override void DrawTabExtras()

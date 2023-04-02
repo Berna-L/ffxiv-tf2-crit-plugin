@@ -155,6 +155,7 @@ public unsafe class CriticalHitsModule: IDisposable
             // If it's not a FlyText for an action, return false
             if (!config.GetModuleDefaults().FlyTextType.Action.Contains(kind)) return false;
             // If we're checking the Own Critical Heals section, check if it's an action of the current job
+            var currentJobActions = Constants.ActionsPerJob[currentClassJobId.Value];
             if (config.ModuleType == ModuleType.OwnCriticalHeal)
             {
                 if (petHeal == val)
@@ -162,7 +163,11 @@ public unsafe class CriticalHitsModule: IDisposable
                     petHeal = -1;
                     return true;
                 }
-                return Constants.ActionsPerJob[currentClassJobId.Value].Contains(text.TextValue) && otherPlayerHeal != val;
+                foreach (var action in currentJobActions)
+                {
+                    Debug(action);
+                }
+                return currentJobActions.Contains(text.TextValue) && otherPlayerHeal != val;
             }
             // If we're checking the Other Critical Heals section, check if it's NOT an action of the current job
             if (config.ModuleType == ModuleType.OtherCriticalHeal)
@@ -172,7 +177,7 @@ public unsafe class CriticalHitsModule: IDisposable
                     otherPlayerHeal = -1;
                     return true;
                 }
-                return !Constants.ActionsPerJob[currentClassJobId.Value].Contains(text.TextValue);
+                return !currentJobActions.Contains(text.TextValue);
             }
             // If it's any other configuration section, it's enabled.
             return true;
