@@ -9,5 +9,5 @@ public static class RiderSourceTemplates
     public static void log(this object obj)
     {
         PluginLog.Debug(obj.ToString());
-    } 
+    }
 }

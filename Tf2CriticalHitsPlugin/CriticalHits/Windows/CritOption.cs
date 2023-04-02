@@ -50,8 +50,13 @@ public class CritOption : ISelectable, IDrawable
     private static void DrawDetailPane(CriticalHitsConfigOne.JobConfig jobConfig, FileDialogManager dialogManager)
     {
         ImGui.Text($"Configuration for {jobConfig.GetClassJob().NameEnglish}");
-        foreach (var module in jobConfig)
+        foreach (var module in CriticalHitsConfigOne.GetModules(jobConfig))
         {
+            if (module.ModuleType.Value == ModuleType.OwnFairyCriticalHeal &&
+                jobConfig.GetClassJob().Abbreviation.ToString() != "SCH")
+            {
+                continue;
+            }
             DrawConfigModule(module, dialogManager);
         }
     }

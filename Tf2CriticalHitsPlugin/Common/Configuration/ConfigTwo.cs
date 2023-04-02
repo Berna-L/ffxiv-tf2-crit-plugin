@@ -22,6 +22,7 @@ public class ConfigTwo: BaseConfiguration
     public void Save()
     {
         this.PluginVersion = PluginVersion.Current;
+        criticalHits.MigrateToFairyHealing();
         File.WriteAllText(Service.PluginInterface.ConfigFile.FullName,
                           JsonConvert.SerializeObject(this, Formatting.Indented));
     }

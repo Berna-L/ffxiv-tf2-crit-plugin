@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Gui.FlyText;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
+using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Tf2CriticalHitsPlugin.Configuration;
 using Tf2CriticalHitsPlugin.CriticalHits.Configuration;
 using Tf2CriticalHitsPlugin.SeFunctions;
-using static Dalamud.Logging.PluginLog;
 using Character = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 
 namespace Tf2CriticalHitsPlugin.CriticalHits;
@@ -18,8 +19,10 @@ public unsafe class CriticalHitsModule: IDisposable
 {
     private readonly CriticalHitsConfigOne config;
     internal static PlaySound? GameSoundPlayer;
-    private int petHeal;
+    private int myHeal;
+    private int myPetHeal;
     private int otherPlayerHeal;
+    private int otherPetHeal;
 
     private delegate void AddToScreenLogWithScreenLogKindDelegate(
         Character* target,
@@ -68,12 +71,23 @@ public unsafe class CriticalHitsModule: IDisposable
     {
         if (FlyTextType.ActionCriticalHeal.Contains(flyTextKind))
         {
+            myHeal = -1;
+            myPetHeal = -1;
+            otherPlayerHeal = 1;
+            otherPetHeal = -1;
+            if (IsPlayer(source))
+            {
+                myHeal = val1;
+            }
             if (IsPlayerPet(source))
             {
-                petHeal = val1;
+                myPetHeal = val1;
             } else if (!IsPlayer(source))
             {
                 otherPlayerHeal = val1;
+            } else if (IsOtherPlayerPet(source))
+            {
+                otherPetHeal = val1;
             }
             
         }
@@ -81,15 +95,13 @@ public unsafe class CriticalHitsModule: IDisposable
         this.addToScreenLogWithScreenLogKindHook!.Original(target, source, flyTextKind, option, actionKind, actionId, val1, val2, damageType);
     }
     
-    private bool IsPlayer(Character* source)
-    {
-        return source->GameObject.ObjectID == Service.ClientState.LocalPlayer?.ObjectId;
-    }
+    private static bool IsPlayer(Character* source) => source->GameObject.ObjectID == Service.ClientState.LocalPlayer?.ObjectId;
 
-    private static bool IsPlayerPet(Character* source)
-    {
-        return source->GameObject.SubKind == (int)BattleNpcSubKind.Pet && source->CompanionOwnerID == Service.ClientState.LocalPlayer?.ObjectId;
-    }
+    private static bool IsPlayerPet(Character* source) =>source->GameObject.SubKind == (int)BattleNpcSubKind.Pet && source->CompanionOwnerID == Service.ClientState.LocalPlayer?.ObjectId;
+
+    private static bool IsOtherPlayerPet(Character* source) =>
+        source->GameObject.SubKind == (int)BattleNpcSubKind.Pet &&
+        source->CompanionOwnerID != Service.ClientState.LocalPlayer?.ObjectId;
 
     public void FlyTextCreate(
             ref FlyTextKind kind,
@@ -104,34 +116,56 @@ public unsafe class CriticalHitsModule: IDisposable
             ref bool handled)
         {
             var currentText2 = text2.ToString();
-            var currentClassJobId = currentText2.StartsWith("TF2TEST##")
-                                        ? byte.Parse(
-                                            currentText2[
-                                                (currentText2.LastIndexOf("#", StringComparison.Ordinal) + 1)..])
-                                        : GetCurrentClassJobId();
+            var currentClassJobId = GetCurrentClassJobId();
+            if (currentText2.StartsWith("TF2TEST##"))
+            {
+                myHeal = -1;
+                myPetHeal = 1;
+                otherPlayerHeal = 1;
+                otherPetHeal = 1;
+                var testFlyText = currentText2.Split("##");
+                PluginLog.Debug(currentText2.ToString());
+                PluginLog.Debug(testFlyText.ToString());
+                currentClassJobId = byte.Parse(testFlyText[1]);
+                switch (Enum.Parse<ModuleType>(testFlyText[2]))
+                {
+                    case ModuleType.OwnCriticalHeal:
+                        myHeal = val1;
+                        break;
+                    case ModuleType.OwnFairyCriticalHeal:
+                        myPetHeal = val1;
+                        break;
+                    case ModuleType.OtherCriticalHeal:
+                        otherPlayerHeal = val1;
+                        break;
+                    case ModuleType.OtherFairyCriticalHeal:
+                        otherPetHeal = val1;
+                        break;
+                }
+            }
             if (currentClassJobId is null) return;
 
-            foreach (var config in config.JobConfigurations[currentClassJobId.Value])
+            foreach (var module in CriticalHitsConfigOne.GetModules(config.JobConfigurations[currentClassJobId.Value]))
             {
-                if (ShouldTriggerInCurrentMode(config) &&
-                    (IsAutoAttack(config, kind) ||
-                     IsEnabledAction(config, kind, text1, val1, currentClassJobId)))
+                if (ShouldTriggerInCurrentMode(module) &&
+                    (IsAutoAttack(module, kind) ||
+                     IsEnabledAction(module, kind, text1, val1, currentClassJobId)))
                 {
-                    if (config.ShowText)
+                    if (module.ShowText)
                     {
-                        text2 = GenerateText(config);
+                        text2 = GenerateText(module);
                     }
 
-                    if (!config.SoundForActionsOnly ||
-                        config.GetModuleDefaults().FlyTextType.Action.Contains(kind))
+                    if (!module.SoundForActionsOnly ||
+                        module.GetModuleDefaults().FlyTextType.Action.Contains(kind))
                     {
-                        if (config.UseCustomFile)
+                        if (module.UseCustomFile)
                         {
-                            SoundEngine.PlaySound(config.FilePath.Value, config.ApplySfxVolume, config.Volume.Value);
+                            SoundEngine.PlaySound(module.FilePath.Value, module.ApplySfxVolume, module.Volume.Value);
                         }
                         else
                         {
-                            GameSoundPlayer?.Play(config.GameSound.Value);
+                            GameSoundPlayer?.Play(module.GameSound.Value);
                         }
                     }
                     break;
@@ -154,33 +188,16 @@ public unsafe class CriticalHitsModule: IDisposable
         {
             // If it's not a FlyText for an action, return false
             if (!config.GetModuleDefaults().FlyTextType.Action.Contains(kind)) return false;
-            // If we're checking the Own Critical Heals section, check if it's an action of the current job
-            var currentJobActions = Constants.ActionsPerJob[currentClassJobId.Value];
-            if (config.ModuleType == ModuleType.OwnCriticalHeal)
+            return config.ModuleType.Value switch
             {
-                if (petHeal == val)
-                {
-                    petHeal = -1;
-                    return true;
-                }
-                foreach (var action in currentJobActions)
-                {
-                    Debug(action);
-                }
-                return currentJobActions.Contains(text.TextValue) && otherPlayerHeal != val;
-            }
-            // If we're checking the Other Critical Heals section, check if it's NOT an action of the current job
-            if (config.ModuleType == ModuleType.OtherCriticalHeal)
-            {
-                if (otherPlayerHeal == val)
-                {
-                    otherPlayerHeal = -1;
-                    return true;
-                }
-                return !currentJobActions.Contains(text.TextValue);
-            }
+                ModuleType.OwnCriticalHeal => myHeal == val,
+                ModuleType.OwnFairyCriticalHeal => myPetHeal == val,
+                ModuleType.OtherCriticalHeal => otherPlayerHeal == val,
+                ModuleType.OtherFairyCriticalHeal => otherPetHeal == val,
+                _ => true
+            };
+
             // If it's any other configuration section, it's enabled.
-            return true;
         }
 
         private static unsafe byte? GetCurrentClassJobId()
@@ -197,18 +214,15 @@ public unsafe class CriticalHitsModule: IDisposable
         public static void GenerateTestFlyText(CriticalHitsConfigOne.ConfigModule config)
         {
             var kind = config.GetModuleDefaults().FlyTextType.Action.FirstOrDefault();
-            var text = GetTestText(config);
+            var text = GetTestText();
             Service.FlyTextGui.AddFlyText(kind, 1, 3333, 0, new SeStringBuilder().AddText(text).Build(),
-                                          new SeStringBuilder().AddText($"TF2TEST##{config.ClassJobId}").Build(),
+                                          new SeStringBuilder().AddText($"TF2TEST##{config.ClassJobId}##{config.ModuleType}").Build(),
                                           config.GetModuleDefaults().FlyTextColor, 0, 60012);
         }
 
-        private static string GetTestText(CriticalHitsConfigOne.ConfigModule configModule)
+        private static string GetTestText()
         {
-            var array = configModule.ModuleType.Value == ModuleType.OwnCriticalHeal
-                            ? Constants.ActionsPerJob[configModule.ClassJobId.Value].ToArray()
-                            : Constants.TestFlavorText;
-            return array[(int)Math.Floor(Random.Shared.NextSingle() * array.Length)];
+            return Constants.TestFlavorText[(int)Math.Floor(Random.Shared.NextSingle() * Constants.TestFlavorText.Length)];
         }
 
         private static SeString GenerateText(CriticalHitsConfigOne.ConfigModule config)

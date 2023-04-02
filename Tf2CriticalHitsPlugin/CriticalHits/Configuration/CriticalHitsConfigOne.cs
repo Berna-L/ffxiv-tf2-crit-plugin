@@ -38,8 +38,14 @@ public class CriticalHitsConfigOne
         public Setting<uint> ClassJobId { get; init; } = new(255);
         public ConfigModule DirectCriticalDamage { get; init; } = new();
         public ConfigModule CriticalDamage { get; init; } = new();
+        public ConfigModule DirectDamage { get; init; } = new();
         public ConfigModule OwnCriticalHeal { get; init; } = new();
-        
+        public ConfigModule OwnFairyCriticalHeal { get; init; } = new();
+        public ConfigModule OtherCriticalHeal { get; init; } = new();
+        public ConfigModule OtherFairyCriticalHeal { get; init; } = new();
+
+
+
         [Obsolete("Used only to import old JSONs")]
         public ConfigModule CriticalHeal
         {
@@ -62,10 +68,6 @@ public class CriticalHitsConfigOne
             }
         }
 
-        public ConfigModule OtherCriticalHeal { get; init; } = new();
-
-        public ConfigModule DirectDamage { get; init; } = new();
-
 
         public static JobConfig Create(uint classJobId)
         {
@@ -74,28 +76,26 @@ public class CriticalHitsConfigOne
                 ClassJobId = new Setting<uint>(classJobId),
                 DirectCriticalDamage = ConfigModule.Create(classJobId, ModuleType.DirectCriticalDamage),
                 CriticalDamage = ConfigModule.Create(classJobId, ModuleType.CriticalDamage),
+                DirectDamage = ConfigModule.Create(classJobId, ModuleType.DirectDamage),
                 OwnCriticalHeal = ConfigModule.Create(classJobId, ModuleType.OwnCriticalHeal),
+                OwnFairyCriticalHeal = ConfigModule.Create(classJobId, ModuleType.OwnFairyCriticalHeal),
                 OtherCriticalHeal = ConfigModule.Create(classJobId, ModuleType.OtherCriticalHeal),
-                DirectDamage = ConfigModule.Create(classJobId, ModuleType.DirectDamage)
+                OtherFairyCriticalHeal = ConfigModule.Create(classJobId, ModuleType.OtherFairyCriticalHeal),
             };
         }
 
 
         public ClassJob GetClassJob() => CombatJobs[ClassJobId.Value];
-
-        public IEnumerator<ConfigModule> GetEnumerator()
-        {
-            return new[] { DirectCriticalDamage, CriticalDamage, DirectDamage, OwnCriticalHeal, OtherCriticalHeal }
-                   .ToList().GetEnumerator();
-        }
-
+        
         public void CopySettingsFrom(JobConfig jobConfig)
         {
             DirectCriticalDamage.CopySettingsFrom(jobConfig.DirectCriticalDamage);
             CriticalDamage.CopySettingsFrom(jobConfig.CriticalDamage);
-            OwnCriticalHeal.CopySettingsFrom(jobConfig.OwnCriticalHeal);
-            OtherCriticalHeal.CopySettingsFrom(jobConfig.OtherCriticalHeal);
             DirectDamage.CopySettingsFrom(jobConfig.DirectDamage);
+            OwnCriticalHeal.CopySettingsFrom(jobConfig.OwnCriticalHeal);
+            OwnFairyCriticalHeal.CopySettingsFrom(jobConfig.OwnFairyCriticalHeal);
+            OtherCriticalHeal.CopySettingsFrom(jobConfig.OtherCriticalHeal);
+            OtherFairyCriticalHeal.CopySettingsFrom(jobConfig.OtherFairyCriticalHeal);
         }
 
     }
@@ -162,7 +162,7 @@ public class CriticalHitsConfigOne
     }
     
     public static IEnumerable<ConfigModule> GetModules(JobConfig jobConfig)
-        => new[] { jobConfig.DirectCriticalDamage, jobConfig.CriticalDamage, jobConfig.DirectDamage, jobConfig.OwnCriticalHeal, jobConfig.OtherCriticalHeal };
+        => new[] { jobConfig.DirectCriticalDamage, jobConfig.CriticalDamage, jobConfig.DirectDamage, jobConfig.OwnCriticalHeal, jobConfig.OwnFairyCriticalHeal, jobConfig.OtherCriticalHeal, jobConfig.OtherFairyCriticalHeal };
 
     
     public void CreateZip(string path)
@@ -267,6 +267,36 @@ public class CriticalHitsConfigOne
         foreach (var (key, _) in fileCriticalHits.JobConfigurations)
         {
             JobConfigurations[key] = fileCriticalHits.JobConfigurations[key];
+        }
+    }
+
+    public void MigrateToFairyHealing()
+    {
+        foreach (var (_, job) in JobConfigurations)
+        {
+            if (job.OwnFairyCriticalHeal.ClassJobId.Value == 255)
+            {
+                job.OwnFairyCriticalHeal.ClassJobId.Value = job.ClassJobId.Value;
+                job.OwnFairyCriticalHeal.CopySettingsFrom(job.OwnCriticalHeal);
+                if (job.OwnFairyCriticalHeal.Text.Value == ModuleDefaults.GetDefaultsFromType(ModuleType.OwnCriticalHeal).DefaultText)
+                {
+                    job.OwnFairyCriticalHeal.Text.Value =
+                        ModuleDefaults.GetDefaultsFromType(ModuleType.OwnFairyCriticalHeal).DefaultText;
+                }
+                job.OwnFairyCriticalHeal.ModuleType.Value = ModuleType.OwnFairyCriticalHeal;
+            }
+
+            if (job.OtherFairyCriticalHeal.ClassJobId.Value == 255)
+            {
+                job.OtherFairyCriticalHeal.ClassJobId.Value = job.ClassJobId.Value;
+                job.OtherFairyCriticalHeal.CopySettingsFrom(job.OtherCriticalHeal);
+                if (job.OtherFairyCriticalHeal.Text.Value == ModuleDefaults.GetDefaultsFromType(ModuleType.OtherCriticalHeal).DefaultText)
+                {
+                    job.OtherFairyCriticalHeal.Text.Value =
+                        ModuleDefaults.GetDefaultsFromType(ModuleType.OtherFairyCriticalHeal).DefaultText;
+                }
+                job.OtherFairyCriticalHeal.ModuleType.Value = ModuleType.OtherFairyCriticalHeal;
+            }
         }
     }
 }

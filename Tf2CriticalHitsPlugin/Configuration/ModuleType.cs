@@ -6,5 +6,7 @@ public enum ModuleType: ushort
     CriticalDamage,
     OwnCriticalHeal,
     DirectDamage,
-    OtherCriticalHeal
+    OtherCriticalHeal,
+    OwnFairyCriticalHeal,
+    OtherFairyCriticalHeal,
 }
