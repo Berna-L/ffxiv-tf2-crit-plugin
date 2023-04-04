@@ -124,8 +124,6 @@ public unsafe class CriticalHitsModule: IDisposable
                 otherPlayerHeal = 1;
                 otherPetHeal = 1;
                 var testFlyText = currentText2.Split("##");
-                PluginLog.Debug(currentText2.ToString());
-                PluginLog.Debug(testFlyText.ToString());
                 currentClassJobId = byte.Parse(testFlyText[1]);
                 switch (Enum.Parse<ModuleType>(testFlyText[2]))
                 {
