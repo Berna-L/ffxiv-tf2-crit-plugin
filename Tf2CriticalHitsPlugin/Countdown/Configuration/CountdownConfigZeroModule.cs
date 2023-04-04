@@ -26,7 +26,12 @@ public class CountdownConfigZeroModule
     public Setting<bool> DelayPlay { get; set; } = new(false);
     public Setting<int> DelayUntilCountdownHits { get; set; } = new(1);
     public Setting<bool> AllTerritories { get; set; } = new(true);
-    public IList<uint> Territories { get; init; } = new List<uint>();
+    public Setting<List<uint>> TerritoryList { get; init; } = new(new List<uint>());
+
+    [NonSerialized]
+    [Obsolete("Use TerritoryList in its place.")]
+    private IList<uint> Territories = new List<uint>();
+
     public Setting<ZoneFilterTypeId> TerritoryFilterType { get; init; } = new(ZoneFilterTypeId.Whitelist);
 
     private CountdownConfigZeroModule()
@@ -41,9 +46,9 @@ public class CountdownConfigZeroModule
     public bool ValidForTerritory(ushort territoryId)
     {
         return AllTerritories || (TerritoryFilterType.Value == ZoneFilterTypeId.Whitelist &&
-                                  Territories.Contains(territoryId))
+                                  TerritoryList.Value.Contains(territoryId))
                               || (TerritoryFilterType.Value == ZoneFilterTypeId.Blacklist &&
-                                  !Territories.Contains(territoryId));
+                                  !TerritoryList.Value.Contains(territoryId));
     }
     
     public static CountdownConfigZeroModule Create(string name)

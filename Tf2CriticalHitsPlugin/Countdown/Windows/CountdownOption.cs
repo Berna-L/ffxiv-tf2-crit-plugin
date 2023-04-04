@@ -13,8 +13,6 @@ namespace Tf2CriticalHitsPlugin.Countdown.Windows;
 
 public class CountdownOption : ISelectable, IDrawable
 {
-    private readonly Setting<List<uint>> zones = new(new List<uint>());
-
     private readonly CountdownConfigZero configZero;
     internal readonly CountdownConfigZeroModule Module;
     private readonly FileDialogManager dialogManager;
@@ -94,12 +92,12 @@ public class CountdownOption : ISelectable, IDrawable
             .StartConditional(!Module.AllTerritories)
             .AddAction(() => ZoneFilterListDraw.DrawFilterTypeRadio(Module.TerritoryFilterType))
             .StartConditional(Service.ClientState.TerritoryType != 0)
-            .AddAction(() => ZoneFilterListDraw.DrawAddRemoveHere(zones))
+            .AddAction(() => ZoneFilterListDraw.DrawAddRemoveHere(Module.TerritoryList))
             .EndConditional()
             .AddAction(() => ZoneFilterListDraw.DrawTerritorySearch(
-                           zones, ZoneFilterType.FromId(Module.TerritoryFilterType.Value)!))
+                           Module.TerritoryList, ZoneFilterType.FromId(Module.TerritoryFilterType.Value)!))
             .AddAction(() => ZoneFilterListDraw.DrawZoneList(
-                           zones, ZoneFilterType.FromId(Module.TerritoryFilterType.Value)!))
+                           Module.TerritoryList, ZoneFilterType.FromId(Module.TerritoryFilterType.Value)!))
             .EndConditional()
             .AddIndent(-2)
             .BeginDisabled(!ImGui.GetIO().KeyShift)
