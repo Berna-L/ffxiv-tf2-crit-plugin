@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using Dalamud.Logging;
 using Dalamud.Utility;
@@ -18,12 +19,20 @@ public static class SoundEngine
     {
         return SoundState.ContainsKey(id);
     }
-    
+
     public static void StopSound(string id)
     {
         SoundState.Remove(id);
     }
-    
+
+
+    public static void StopSoundsWithIdStartingWith(string countdown)
+    {
+        foreach (var s in SoundState.Keys.Where(k => k.StartsWith(countdown)).ToArray())
+        {
+            SoundState.Remove(s);
+        }
+    }
     // Copied from PeepingTom plugin, by ascclemens:
     // https://git.anna.lgbt/ascclemens/PeepingTom/src/commit/3749a6b42154a51397733abb2d3b06a47915bdcc/Peeping%20Tom/TargetWatcher.cs#L162
     public static void PlaySound(string? path, bool useGameSfxVolume, int volume = 100, string? id = null)

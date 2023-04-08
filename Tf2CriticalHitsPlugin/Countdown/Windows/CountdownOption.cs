@@ -80,6 +80,7 @@ public class CountdownOption : ISelectable, IDrawable
             .AddString("Start playing when it hits")
             .SameLine()
             .AddInputInt($"seconds##{Module.Id}PlayWhen", Module.DelayUntilCountdownHits, 1, Module.MaximumCountdownTimer.Value)
+            .AddConfigCheckbox("Play with other Jams", Module.PlayWithOtherSounds, "If enabled, this Jam will be played for any applicable countdowns,\nno matter if another Countdown Jam is also valid for it.\n\nWarning: this Jam's cancel sound will only be played\nif it's the only or first valid Jam for the countdown.")
             .AddIndent(-2)
             .EndConditional()
             .AddIndent(-2)

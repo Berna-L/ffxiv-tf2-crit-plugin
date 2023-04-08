@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game;
 using Tf2CriticalHitsPlugin.Countdown.Configuration;
@@ -12,7 +13,7 @@ public class CountdownModule : IDisposable
     private readonly State state;
     private readonly CountdownConfigZero config;
     private readonly CountdownHook countdownHook;
-    private bool playedForCurrentCountdown = false;
+    private readonly ISet<string> playedForCurrentCountdown = new HashSet<string>();
 
     public CountdownModule(State state, CountdownConfigZero config)
     {
@@ -27,21 +28,32 @@ public class CountdownModule : IDisposable
     private void OnUpdate(Framework framework)
     {
         countdownHook.Update();
-        var module = config.modules
+        if (!state.CountingDown) return;
+        var firstModule = config.modules
                            .Where(m => m.Enabled)
                            .Where(m => m.DelayPlay)
                            .Where(m => m.ValidForCountdown(state.StartingValue))
                            .FirstOrDefault(m => m.ValidForTerritory(Service.ClientState.TerritoryType));
-        if (module is null) return;
-        if (!state.CountingDown || state.CountDownValue > module.DelayUntilCountdownHits.Value ||
-            playedForCurrentCountdown) return;
-        SoundEngine.PlaySound(module.FilePath.Value, module.ApplySfxVolume, module.Volume.Value, $"countdown|{module.Id}");
-        playedForCurrentCountdown = true;
+
+        if (firstModule is null) return;
+        var otherModules = config.modules
+                                 .Where(m => m.Enabled)
+                                 .Where(m => m.DelayPlay)
+                                 .Where(m => m.Id.Value != firstModule.Id.Value)
+                                 .Where(m => m.ValidForCountdown(state.StartingValue))
+                                 .Where(m => m.ValidForTerritory(Service.ClientState.TerritoryType));
+        foreach (var module in new[] { firstModule }.Concat(otherModules))
+        {
+            if (!state.CountingDown || state.CountDownValue > module.DelayUntilCountdownHits.Value ||
+                playedForCurrentCountdown.Contains(module.Id.Value)) continue;
+            SoundEngine.PlaySound(module.FilePath.Value, module.ApplySfxVolume, module.Volume.Value, $"countdown|{module.Id}");
+            playedForCurrentCountdown.Add(module.Id.Value);
+        } 
     }
 
     private void OnStartCountingDown(object? sender, EventArgs args)
     {
-        playedForCurrentCountdown = false;
+        playedForCurrentCountdown.Clear();
         if (sender is null) return;
         var state = (State)sender;
         var module = config.modules
@@ -53,7 +65,7 @@ public class CountdownModule : IDisposable
         if (module is null) return;
         SoundEngine.PlaySound(module.FilePath.Value, module.ApplySfxVolume, module.Volume.Value,
                               $"countdown|{module.Id}");
-        playedForCurrentCountdown = true;
+        playedForCurrentCountdown.Add(module.Id.Value);
     }
 
     private void OnStopCountingDown(object? sender, EventArgs e)
@@ -66,7 +78,7 @@ public class CountdownModule : IDisposable
                                      .FirstOrDefault(m => SoundEngine.IsPlaying($"countdown|{m.Id}"));
             if (moduleToStop is null) return;
 
-            SoundEngine.StopSound($"countdown|{moduleToStop.Id}");
+            SoundEngine.StopSoundsWithIdStartingWith("countdown|");
             SoundEngine.PlaySound(moduleToStop.InterruptedFilePath.Value, moduleToStop.InterruptedApplySfxVolume,
                                   moduleToStop.InterruptedVolume.Value, $"countdownstop");
         }

@@ -25,6 +25,7 @@ public class CountdownConfigZeroModule
     public Setting<int> MaximumCountdownTimer { get; set; } = new(30);
     public Setting<bool> DelayPlay { get; set; } = new(false);
     public Setting<int> DelayUntilCountdownHits { get; set; } = new(1);
+    public Setting<bool> PlayWithOtherSounds { get; set; } = new(false);
     public Setting<bool> AllTerritories { get; set; } = new(true);
     public Setting<List<uint>> TerritoryList { get; init; } = new(new List<uint>());
 
