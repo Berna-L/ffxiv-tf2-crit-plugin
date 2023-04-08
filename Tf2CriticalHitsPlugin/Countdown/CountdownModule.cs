@@ -31,7 +31,6 @@ public class CountdownModule : IDisposable
         if (!state.CountingDown) return;
         var firstModule = config.modules
                            .Where(m => m.Enabled)
-                           .Where(m => m.DelayPlay)
                            .Where(m => m.ValidForCountdown(state.StartingValue))
                            .FirstOrDefault(m => m.ValidForTerritory(Service.ClientState.TerritoryType));
 
@@ -39,6 +38,7 @@ public class CountdownModule : IDisposable
         var otherModules = config.modules
                                  .Where(m => m.Enabled)
                                  .Where(m => m.DelayPlay)
+                                 .Where(m => m.PlayWithOtherSounds)
                                  .Where(m => m.Id.Value != firstModule.Id.Value)
                                  .Where(m => m.ValidForCountdown(state.StartingValue))
                                  .Where(m => m.ValidForTerritory(Service.ClientState.TerritoryType));
