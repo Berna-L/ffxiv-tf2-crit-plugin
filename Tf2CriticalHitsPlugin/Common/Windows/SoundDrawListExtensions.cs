@@ -32,10 +32,10 @@ public static class SoundDrawListExtensions
                        .EndConditional()
                        .AddSliderInt($"Volume##{id}", volume, 0, 100)
                        .SameLine()
-                       .AddConfigCheckbox("Affected by the game's sound effects volume", applySfxVolume,
+                       .AddConfigCheckbox($"Affected by the game's sound effects volume", applySfxVolume,
                                           "If enabled, consider the volume set here to be in relation to the game's other SFX," +
                                           "\nsince the effective volume will also vary with your Master and Sound Effects volume." +
-                                          "\nIf disabled, It'll always play at the set volume, even if the game is muted internally.");
+                                          "\nIf disabled, It'll always play at the set volume, even if the game is muted internally.", id);
     }
 
     private static void openFileDialog(FileDialogManager dialogManager, Setting<string> filePath)
