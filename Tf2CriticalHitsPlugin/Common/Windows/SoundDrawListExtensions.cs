@@ -30,7 +30,7 @@ public static class SoundDrawListExtensions
                        .AddIconButton($"{id}StopButton", FontAwesomeIcon.Stop, () => SoundEngine.StopSound($"{id}Test"))
                        .EndConditional()
                        .EndConditional()
-                       .AddSliderInt("Volume", volume, 0, 100)
+                       .AddSliderInt($"{id}Volume", volume, 0, 100)
                        .SameLine()
                        .AddConfigCheckbox("Affected by the game's sound effects volume", applySfxVolume,
                                           "If enabled, consider the volume set here to be in relation to the game's other SFX," +
