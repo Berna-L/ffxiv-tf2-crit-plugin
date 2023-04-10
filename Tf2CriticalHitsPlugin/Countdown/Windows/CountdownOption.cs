@@ -67,11 +67,11 @@ public class CountdownOption : ISelectable, IDrawable
             .AddIndent(2)
             .AddString("Enable for countdowns between")
             .SameLine()
-            .AddInputInt($"##{Module.Id}MinCD", Module.MinimumCountdownTimer, 5, Module.MaximumCountdownTimer.Value)
+            .AddInputInt($"##{Module.Id}MinCD", Module.MinimumCountdownTimer, 5, Module.MaximumCountdownTimer.Value, width: GetSecondsInputWidth())
             .SameLine()
             .AddString("and")
             .SameLine()
-            .AddInputInt($"##{Module.Id}MaxCD", Module.MaximumCountdownTimer, Module.MinimumCountdownTimer.Value, 30)
+            .AddInputInt($"##{Module.Id}MaxCD", Module.MaximumCountdownTimer, Module.MinimumCountdownTimer.Value, 30, width: GetSecondsInputWidth())
             .SameLine()
             .AddString("seconds long")
             .AddConfigCheckbox("Play when the countdown hits a specific mark (and not when it starts)", Module.DelayPlay)
@@ -79,7 +79,7 @@ public class CountdownOption : ISelectable, IDrawable
             .AddIndent(2)
             .AddString("Start playing when it hits")
             .SameLine()
-            .AddInputInt($"seconds##{Module.Id}PlayWhen", Module.DelayUntilCountdownHits, 1, Module.MaximumCountdownTimer.Value)
+            .AddInputInt($"seconds##{Module.Id}PlayWhen", Module.DelayUntilCountdownHits, 1, Module.MaximumCountdownTimer.Value, width: GetSecondsInputWidth())
             .AddConfigCheckbox("Play with other Jams", Module.PlayWithOtherSounds, "If enabled, this Jam will be played for any applicable countdowns,\nno matter if another Countdown Jam is also valid for it.\n\nWarning: this Jam's cancel sound will only be played\nif it's the only or first valid Jam for the countdown.")
             .AddIndent(-2)
             .EndConditional()
@@ -109,6 +109,11 @@ public class CountdownOption : ISelectable, IDrawable
             .Draw();
 
         Module.AllTerritories.Value = anywhereOrSelect.Value == Option.Anywhere;
+    }
+
+    private static float GetSecondsInputWidth()
+    {
+        return 5F * ImGui.GetFontSize();
     }
 }
 
