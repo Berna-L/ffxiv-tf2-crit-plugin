@@ -4,6 +4,7 @@ using System.IO;
 using System.Numerics;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Logging;
 using Dalamud.Utility;
 using ImGuiNET;
 using KamiLib;
@@ -71,7 +72,9 @@ public class CritOption : ISelectable, IDrawable
                 KamiCommon.SaveConfiguration();
             }
         }
-
+        
+        PluginLog.Debug(ImGui.GetFontSize().ToString());
+        
         InfoBox.Instance.AddTitle(config.GetModuleDefaults().SectionLabel)
                .StartConditional(config.GetModuleDefaults().SectionNote is not null)
                .AddString(config.GetModuleDefaults().SectionNote ?? "", Colors.Orange)
@@ -85,7 +88,7 @@ public class CritOption : ISelectable, IDrawable
                .StartConditional(!config.UseCustomFile)
                .AddIndent(2)
                .AddConfigCheckbox("Play sound only for actions (ignore auto-attacks)", config.SoundForActionsOnly)
-               .AddConfigCombo(SoundsExtensions.Values(), config.GameSound, s => s.ToName(), width: 150.0f)
+               .AddConfigCombo(SoundsExtensions.Values(), config.GameSound, s => s.ToName(), width: 7.5F * ImGui.GetFontSize())
                .SameLine()
                .AddIconButton($"{config.GetId()}testSfx", FontAwesomeIcon.Play,
                               () => CriticalHitsModule.GameSoundPlayer?.Play(config.GameSound.Value))
