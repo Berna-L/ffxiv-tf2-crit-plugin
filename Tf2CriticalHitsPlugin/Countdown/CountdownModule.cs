@@ -74,13 +74,22 @@ public class CountdownModule : IDisposable
         var state = (State)sender;
         if (state.countdownCancelled)
         {
-            var moduleToStop = config.modules
+            var moduleToPlayInterrupt = config.modules
                                      .FirstOrDefault(m => SoundEngine.IsPlaying($"countdown|{m.Id}"));
-            if (moduleToStop is null) return;
+            if (moduleToPlayInterrupt is null) return;
 
             SoundEngine.StopSoundsWithIdStartingWith("countdown|");
-            SoundEngine.PlaySound(moduleToStop.InterruptedFilePath.Value, moduleToStop.InterruptedApplySfxVolume,
-                                  moduleToStop.InterruptedVolume.Value, $"countdownstop");
+            SoundEngine.PlaySound(moduleToPlayInterrupt.InterruptedFilePath.Value, moduleToPlayInterrupt.InterruptedApplySfxVolume,
+                                  moduleToPlayInterrupt.InterruptedVolume.Value, $"countdownstop");
+        }
+        else
+        {
+            foreach (var module in config.modules
+                                    .Where(m => m.StopWhenCountdownCompletes)
+                                    .Where(m => SoundEngine.IsPlaying($"countdown|{m.Id}")))
+            {
+                SoundEngine.StopSound($"countdown|{module.Id}");
+            }
         }
     }
 

@@ -83,6 +83,9 @@ public class CountdownOption : ISelectable, IDrawable
             .AddConfigCheckbox("Play with other Jams", Module.PlayWithOtherSounds, "If enabled, this Jam will be played for any applicable countdowns,\nno matter if another Countdown Jam is also valid for it.\n\nWarning: this Jam's cancel sound will only be played\nif it's the only or first valid Jam for the countdown.")
             .AddIndent(-2)
             .EndConditional()
+            .AddConfigCheckbox($"Stop when the countdown completes##{Module.Id}", Module.StopWhenCountdownCompletes, "Disabled: this Jam will keep playing after the countdown hits \"Start!\"." +
+                                   "\n(It'll be interrupted only if the countdown itself is interrupted)" +
+                                   "\n\nEnabled: this Jam will be interrupted when the countdown hits \"Start!\".")
             .AddIndent(-2)
             .AddString("Where to play")
             .AddIndent(2)
