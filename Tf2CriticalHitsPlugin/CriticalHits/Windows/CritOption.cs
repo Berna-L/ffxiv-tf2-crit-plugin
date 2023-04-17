@@ -64,17 +64,6 @@ public class CritOption : ISelectable, IDrawable
 
     private static void DrawConfigModule(CriticalHitsConfigOne.ConfigModule config, FileDialogManager dialogManager)
     {
-        void UpdatePath(bool success, List<string> paths)
-        {
-            if (success && paths.Count > 0)
-            {
-                config.FilePath = new Setting<string>(paths[0]);
-                KamiCommon.SaveConfiguration();
-            }
-        }
-        
-        PluginLog.Debug(ImGui.GetFontSize().ToString());
-        
         InfoBox.Instance.AddTitle(config.GetModuleDefaults().SectionLabel)
                .StartConditional(config.GetModuleDefaults().SectionNote is not null)
                .AddString(config.GetModuleDefaults().SectionNote ?? "", Colors.Orange)

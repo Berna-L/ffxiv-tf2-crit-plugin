@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Gui.FlyText;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
-using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Tf2CriticalHitsPlugin.Configuration;
 using Tf2CriticalHitsPlugin.CriticalHits.Configuration;
@@ -73,7 +72,7 @@ public unsafe class CriticalHitsModule: IDisposable
         {
             myHeal = -1;
             myPetHeal = -1;
-            otherPlayerHeal = 1;
+            otherPlayerHeal = -1;
             otherPetHeal = -1;
             if (IsPlayer(source))
             {
@@ -81,13 +80,27 @@ public unsafe class CriticalHitsModule: IDisposable
             }
             if (IsPlayerPet(source))
             {
-                myPetHeal = val1;
+                if (IsOwnerScholar(source))
+                {
+                    myPetHeal = val1;
+                }
+                else
+                {
+                    myHeal = val1;
+                }
             } else if (!IsPlayer(source))
             {
                 otherPlayerHeal = val1;
             } else if (IsOtherPlayerPet(source))
             {
-                otherPetHeal = val1;
+                if (IsOwnerScholar(source))
+                {
+                    otherPetHeal = val1;
+                }
+                else
+                {
+                    otherPlayerHeal = val1;
+                }
             }
             
         }
@@ -97,11 +110,22 @@ public unsafe class CriticalHitsModule: IDisposable
     
     private static bool IsPlayer(Character* source) => source->GameObject.ObjectID == Service.ClientState.LocalPlayer?.ObjectId;
 
-    private static bool IsPlayerPet(Character* source) =>source->GameObject.SubKind == (int)BattleNpcSubKind.Pet && source->CompanionOwnerID == Service.ClientState.LocalPlayer?.ObjectId;
-
+    private static bool IsPlayerPet(Character* source) => source->GameObject.SubKind == (int)BattleNpcSubKind.Pet &&
+                                                          source->CompanionOwnerID ==
+                                                          Service.ClientState.LocalPlayer?.ObjectId;
+    
     private static bool IsOtherPlayerPet(Character* source) =>
         source->GameObject.SubKind == (int)BattleNpcSubKind.Pet &&
         source->CompanionOwnerID != Service.ClientState.LocalPlayer?.ObjectId;
+
+    private static bool IsOwnerScholar(Character* source)
+    {
+        var owner = source->CompanionOwnerID == Service.ClientState.LocalPlayer?.ObjectId ?
+                        Service.ClientState.LocalPlayer :
+                        Service.PartyList.FirstOrDefault(pm => pm.ObjectId == source->CompanionOwnerID)?.GameObject;
+        return (owner as BattleChara)?.ClassJob.Id ==
+               Constants.CombatJobs.FirstOrDefault(kv => kv.Value.Abbreviation == "SCH").Key;
+    }
 
     public void FlyTextCreate(
             ref FlyTextKind kind,
