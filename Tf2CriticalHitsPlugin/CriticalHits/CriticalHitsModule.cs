@@ -195,7 +195,7 @@ public unsafe class CriticalHitsModule: IDisposable
             }
         }
         
-                private static bool ShouldTriggerInCurrentMode(CriticalHitsConfigOne.ConfigModule config)
+        private static bool ShouldTriggerInCurrentMode(CriticalHitsConfigOne.ConfigModule config)
         {
             return !IsPvP() || config.ApplyInPvP;
         }

@@ -39,7 +39,8 @@ public static class SoundEngine
     {
         if (path.IsNullOrEmpty() || !File.Exists(path))
         {
-            PluginLog.Error($"Could not find file: {path}");
+            PluginLog.Error($"Could not find audio file: [{path}]");
+            return;
         }
 
         var soundDevice = DirectSoundOut.DSDEVID_DefaultPlayback;
