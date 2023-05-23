@@ -180,8 +180,14 @@ namespace Tf2CriticalHitsPlugin
             {
                 var baseConfig = JsonConvert.DeserializeObject<BaseConfiguration>(File.ReadAllText(file.FullName));
                 if (baseConfig is null) continue;
-                if (previousFileVersion.Before(baseConfig.PluginVersion)) continue;
-                File.Delete(file.FullName);
+                if (previousFileVersion.Before(baseConfig.PluginVersion))
+                {
+                    previousFileVersion = baseConfig.PluginVersion;
+                }
+                else
+                {
+                    File.Delete(file.FullName);
+                }
             }
         }
 
