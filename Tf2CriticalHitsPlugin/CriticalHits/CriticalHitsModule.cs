@@ -182,7 +182,9 @@ public unsafe class CriticalHitsModule: IDisposable
 
                     var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                     if ((!module.SoundForActionsOnly ||
-                         module.GetModuleDefaults().FlyTextType.Action.Contains(kind)) && now - lastTimeSoundPlayed > jobConfig.TimeBetweenSounds.Value)
+                         module.GetModuleDefaults().FlyTextType.Action.Contains(kind)) &&
+                        (jobConfig.TimeBetweenSounds.Value == 0 ||
+                        now - lastTimeSoundPlayed > jobConfig.TimeBetweenSounds.Value))
                     {
                         lastTimeSoundPlayed = now;
                         if (module.UseCustomFile)
