@@ -51,6 +51,11 @@ public class CritOption : ISelectable, IDrawable
     private static void DrawDetailPane(CriticalHitsConfigOne.JobConfig jobConfig, FileDialogManager dialogManager)
     {
         ImGui.Text($"Configuration for {jobConfig.GetClassJob().NameEnglish}");
+        InfoBox.Instance.AddTitle("General")
+               .AddString("Play sounds once every")
+               .SameLine()
+               .AddInputInt("ms", jobConfig.TimeBetweenSounds, 0, 100000, width: 200F)
+               .Draw();
         foreach (var module in CriticalHitsConfigOne.GetModules(jobConfig))
         {
             if (module.ModuleType.Value == ModuleType.OwnFairyCriticalHeal &&

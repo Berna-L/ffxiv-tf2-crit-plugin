@@ -36,6 +36,7 @@ public class CriticalHitsConfigOne
     public class JobConfig
     {
         public Setting<uint> ClassJobId { get; init; } = new(255);
+        public Setting<int> TimeBetweenSounds = new(0);
         public ConfigModule DirectCriticalDamage { get; init; } = new();
         public ConfigModule CriticalDamage { get; init; } = new();
         public ConfigModule DirectDamage { get; init; } = new();
@@ -74,6 +75,7 @@ public class CriticalHitsConfigOne
             return new JobConfig
             {
                 ClassJobId = new Setting<uint>(classJobId),
+                TimeBetweenSounds = new Setting<int>(0),
                 DirectCriticalDamage = ConfigModule.Create(classJobId, ModuleType.DirectCriticalDamage),
                 CriticalDamage = ConfigModule.Create(classJobId, ModuleType.CriticalDamage),
                 DirectDamage = ConfigModule.Create(classJobId, ModuleType.DirectDamage),
@@ -89,6 +91,7 @@ public class CriticalHitsConfigOne
         
         public void CopySettingsFrom(JobConfig jobConfig)
         {
+            TimeBetweenSounds = jobConfig.TimeBetweenSounds with { };
             DirectCriticalDamage.CopySettingsFrom(jobConfig.DirectCriticalDamage);
             CriticalDamage.CopySettingsFrom(jobConfig.CriticalDamage);
             DirectDamage.CopySettingsFrom(jobConfig.DirectDamage);

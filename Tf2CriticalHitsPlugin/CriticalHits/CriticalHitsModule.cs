@@ -22,6 +22,7 @@ public unsafe class CriticalHitsModule: IDisposable
     private int myPetHeal;
     private int otherPlayerHeal;
     private int otherPetHeal;
+    private long lastTimeSoundPlayed;
 
     private delegate void AddToScreenLogWithScreenLogKindDelegate(
         Character* target,
@@ -167,7 +168,8 @@ public unsafe class CriticalHitsModule: IDisposable
             }
             if (currentClassJobId is null) return;
 
-            foreach (var module in CriticalHitsConfigOne.GetModules(config.JobConfigurations[currentClassJobId.Value]))
+            var jobConfig = config.JobConfigurations[currentClassJobId.Value];
+            foreach (var module in CriticalHitsConfigOne.GetModules(jobConfig))
             {
                 if (ShouldTriggerInCurrentMode(module) &&
                     (IsAutoAttack(module, kind) ||
@@ -178,9 +180,11 @@ public unsafe class CriticalHitsModule: IDisposable
                         text2 = GenerateText(module);
                     }
 
-                    if (!module.SoundForActionsOnly ||
-                        module.GetModuleDefaults().FlyTextType.Action.Contains(kind))
+                    var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                    if ((!module.SoundForActionsOnly ||
+                         module.GetModuleDefaults().FlyTextType.Action.Contains(kind)) && now - lastTimeSoundPlayed > jobConfig.TimeBetweenSounds.Value)
                     {
+                        lastTimeSoundPlayed = now;
                         if (module.UseCustomFile)
                         {
                             SoundEngine.PlaySound(module.FilePath.Value, module.ApplySfxVolume, module.Volume.Value);
