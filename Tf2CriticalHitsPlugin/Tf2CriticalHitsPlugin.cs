@@ -17,7 +17,6 @@ using Tf2CriticalHitsPlugin.CriticalHits;
 using Tf2CriticalHitsPlugin.CriticalHits.Configuration;
 using Tf2CriticalHitsPlugin.CriticalHits.Windows;
 using Tf2CriticalHitsPlugin.Windows;
-using static Dalamud.Logging.PluginLog;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using PluginVersion = Tf2CriticalHitsPlugin.Configuration.PluginVersion;
 
@@ -106,7 +105,7 @@ namespace Tf2CriticalHitsPlugin
                 Directory.CreateDirectory(BackupsFolder);
 
                 var filesLength = Directory.GetFiles(BackupsFolder).Length;
-                LogDebug($"{filesLength} files in the backups folder");
+                Service.PluginLog.Debug($"{filesLength} files in the backups folder");
                 if ((config.PluginVersion.Equals(PluginVersion.From(3, 0, 1)) ||
                      config.PluginVersion.Equals(PluginVersion.From(3, 0, 0)))
                     && filesLength != 0)
@@ -131,7 +130,7 @@ namespace Tf2CriticalHitsPlugin
             }
             catch (Exception e)
             {
-                if (e.StackTrace is not null) LogError(e.StackTrace);
+                if (e.StackTrace is not null) Service.PluginLog.Debug(e.StackTrace);
                 Service.PluginInterface.ConfigFile.MoveTo(BackupFileName, true);
                 Chat.PrintError(
                     $"There was an error while reading your configuration file and it was reset. The old file is available here: {BackupFileName}");

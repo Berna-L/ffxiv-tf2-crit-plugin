@@ -72,6 +72,10 @@ public abstract class Constants
             {
                 foreach (var parentAction in result[classJob.ClassJobParent.Value.RowId])
                 {
+                    if (!result.ContainsKey(classJob.RowId))
+                    {
+                        result[classJob.RowId] = new HashSet<string>();
+                    }
                     result[classJob.RowId].Add(parentAction);
                 }
             }

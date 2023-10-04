@@ -46,7 +46,7 @@ public unsafe class CriticalHitsModule: IDisposable
 
         try {
             var addToScreenLogWithScreenLogKindAddress = Service.SigScanner.ScanText("E8 ?? ?? ?? ?? BF ?? ?? ?? ?? EB 39");
-            this.addToScreenLogWithScreenLogKindHook = Hook<AddToScreenLogWithScreenLogKindDelegate>.FromAddress(addToScreenLogWithScreenLogKindAddress, this.AddToScreenLogWithScreenLogKindDetour);
+            this.addToScreenLogWithScreenLogKindHook = Service.GameInteropProvider.HookFromAddress<AddToScreenLogWithScreenLogKindDelegate>(addToScreenLogWithScreenLogKindAddress, this.AddToScreenLogWithScreenLogKindDetour);
             this.addToScreenLogWithScreenLogKindHook.Enable();
 
         }

@@ -8,6 +8,6 @@ public static class RiderSourceTemplates
     [SourceTemplate]
     public static void log(this object obj)
     {
-        PluginLog.Debug(obj.ToString());
+        Service.PluginLog.Debug(obj.ToString() ?? "null");
     }
 }

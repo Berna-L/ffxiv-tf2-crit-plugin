@@ -7,6 +7,7 @@ using Dalamud.Game.Command;
 using Dalamud.Game.Gui.FlyText;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 
 namespace Tf2CriticalHitsPlugin;
 
@@ -16,26 +17,33 @@ public class Service
     public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
 
     [PluginService]
-    public static CommandManager CommandManager { get; private set; } = null!;
+    public static IPluginLog PluginLog { get; private set; } = null!;
+    
+    [PluginService]
+    public static ICommandManager CommandManager { get; private set; } = null!;
 
     [PluginService]
-    public static FlyTextGui FlyTextGui { get; private set; } = null!;
+    public static IFlyTextGui FlyTextGui { get; private set; } = null!;
 
     [PluginService]
-    public static DataManager? DataManager { get; private set; } = null;
+    public static IDataManager? DataManager { get; private set; } = null;
 
     [PluginService]
-    public static SigScanner SigScanner { get; private set; } = null!;
+    public static ISigScanner SigScanner { get; private set; } = null!;
 
     [PluginService]
-    public static ClientState ClientState { get; private set; } = null!;
+    public static IClientState ClientState { get; private set; } = null!;
 
     [PluginService]
-    public static Condition Condition { get; private set; } = null!;
+    public static ICondition Condition { get; private set; } = null!;
 
     [PluginService]
-    public static Framework Framework { get; private set; } = null!;
+    public static IFramework Framework { get; private set; } = null!;
 
     [PluginService]
-    public static PartyList PartyList { get; private set; } = null!;
+    public static IPartyList PartyList { get; private set; } = null!;
+    
+    [PluginService]
+    public static IGameInteropProvider GameInteropProvider { get; private set; } = null!;
+
 }

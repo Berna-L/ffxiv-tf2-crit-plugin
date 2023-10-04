@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
+using Dalamud.Plugin.Services;
 using Dalamud.Utility.Signatures;
 using Tf2CriticalHitsPlugin.Countdown.Status;
 
@@ -15,7 +16,7 @@ namespace Tf2CriticalHitsPlugin.Countdown.Game;
 
 public sealed class CountdownHook : IDisposable
 {
-    private readonly Condition condition;
+    private readonly ICondition condition;
 
     [Signature("48 89 5C 24 ?? 57 48 83 EC 40 8B 41", DetourName = nameof(CountdownTimerFunc))]
     private readonly Hook<CountdownTimerDelegate>? countdownTimerHook = null;
@@ -33,12 +34,12 @@ public sealed class CountdownHook : IDisposable
     private float lastCountDownValue;
 
 
-    public CountdownHook(State state, Condition condition)
+    public CountdownHook(State state, ICondition condition)
     {
         this.state = state;
         this.condition = condition;
         countDown = 0;
-        SignatureHelper.Initialise(this);
+        Service.GameInteropProvider.InitializeFromAttributes(this);
         countdownTimerHook?.Enable();
     }
 

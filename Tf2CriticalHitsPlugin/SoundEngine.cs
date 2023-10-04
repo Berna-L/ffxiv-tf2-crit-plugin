@@ -39,7 +39,7 @@ public static class SoundEngine
     {
         if (path.IsNullOrEmpty() || !File.Exists(path))
         {
-            PluginLog.Error($"Could not find audio file: [{path}]");
+            Service.PluginLog.Error($"Could not find audio file: [{path}]");
             return;
         }
 
@@ -53,7 +53,7 @@ public static class SoundEngine
             }
             catch (Exception e)
             {
-                PluginLog.LogError(e.Message);
+                Service.PluginLog.Error(e.Message);
                 return;
             }
             using var channel = new WaveChannel32(reader)
@@ -92,7 +92,7 @@ public static class SoundEngine
                 }
                 catch (Exception ex)
                 {
-                    PluginLog.LogError(ex, "Exception playing sound");
+                    Service.PluginLog.Error(ex, "Exception playing sound");
                 }
             }
         }).Start();

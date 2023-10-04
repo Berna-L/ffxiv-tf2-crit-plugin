@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game;
+using Dalamud.Plugin.Services;
 using Tf2CriticalHitsPlugin.Countdown.Configuration;
 using Tf2CriticalHitsPlugin.Countdown.Game;
 using Tf2CriticalHitsPlugin.Countdown.Status;
@@ -25,7 +26,7 @@ public class CountdownModule : IDisposable
         Service.Framework.Update += OnUpdate;
     }
 
-    private void OnUpdate(Framework framework)
+    private void OnUpdate(IFramework framework)
     {
         countdownHook.Update();
         if (!state.CountingDown) return;

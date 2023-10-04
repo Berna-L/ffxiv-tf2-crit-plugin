@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
-using Dalamud.Interface.ImGuiFileDialog;
-using Dalamud.Interface.Raii;
+﻿using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using KamiLib.Configuration;
 using KamiLib.Drawing;

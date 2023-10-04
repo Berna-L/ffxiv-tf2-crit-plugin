@@ -1,4 +1,5 @@
 using Dalamud.Game;
+using Tf2CriticalHitsPlugin.Game.SFX;
 
 namespace Tf2CriticalHitsPlugin.SeFunctions
 {
@@ -6,7 +7,7 @@ namespace Tf2CriticalHitsPlugin.SeFunctions
 
     public sealed class PlaySound : SeFunctionBase<PlaySoundDelegate>
     {
-        public PlaySound(SigScanner sigScanner)
+        public PlaySound(ISigScanner sigScanner)
             : base(sigScanner, "E8 ?? ?? ?? ?? 4D 39 BE")
         { }
 
